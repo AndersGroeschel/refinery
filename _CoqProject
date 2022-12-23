@@ -1,7 +1,8 @@
 -R . Refinery
 
+src/mapping.v
+
 src/refinery/definitions.v
-src/refinery/property_logic.v
 src/refinery/type_rules.v
 src/refinery/eval_rules.v
 
