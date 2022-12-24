@@ -1,25 +1,21 @@
 Require Import definitions.
-Require Import property_logic.
+Require Import constraints.
 
-
-Inductive Refinery_Base_Type: Type :=
-| R_T_Int: Refinery_Base_Type
-| R_T_Bool: Refinery_Base_Type
+Inductive Refinery_BaseType: Type :=
+    | R_T_Bool: Refinery_BaseType
 .
 
-Definition Refinery_Refinement_Type := (Refinery_Base_Type * Property_Logic)%type.
+Definition Refinery_RefinementType := (Refinery_BaseType * Constraints_Lang)%type.
 
 
-Reserved Notation "exp 'hasType' T" (at level 40).
-Inductive R_Type_Rule : Refinery_Lang -> Refinery_Refinement_Type -> Prop :=
-| R_T_Rule_Int : forall z,
-    (R_Primitive (R_Int z)) hasType (R_T_Int, (PL_equal PL_self (PL_number z)))
 
-| R_T_Rule_True :
-    (R_Primitive (R_Bool true)) hasType (R_T_Bool, (PL_equal PL_self PL_true))
+Reserved Notation "exp 'hasRefinement' T" (at level 40).
+Inductive Refinery_Type_Rule : Refinery_Lang -> Refinery_RefinementType -> Prop :=
+    | R_T_Rule_True :
+        (R_Primitive (R_Prim_Bool true)) hasRefinement (R_T_Bool, C_Constraint (C_Prop_Self, (C_Op_Equal, R_Prim_Bool true)))
 
-| R_T_Rule_False :
-    (R_Primitive (R_Bool false)) hasType (R_T_Bool, (PL_equal PL_self PL_false))
+    | R_T_Rule_False :
+        (R_Primitive (R_Prim_Bool false)) hasRefinement (R_T_Bool, C_Constraint (C_Prop_Self,( C_Op_Equal, R_Prim_Bool false)))
 
-where "exp 'hasType' T" := (R_Type_Rule exp T).
+where "exp 'hasRefinement' T" := (Refinery_Type_Rule exp T).
 

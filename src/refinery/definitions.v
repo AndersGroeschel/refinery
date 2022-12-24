@@ -1,12 +1,18 @@
 Require Import Bool ZArith.
 
 
-Inductive Primitive_Lang : Type :=
-| R_Int: Z -> Primitive_Lang
-| R_Bool: bool -> Primitive_Lang
+Inductive R_Lang_Primitive : Type :=
+    | R_Prim_Bool: bool -> R_Lang_Primitive
 .
 
+Definition primitivesSame prim1 prim2 :=
+match (prim1, prim2) with 
+    | ((R_Prim_Bool true), (R_Prim_Bool true)) => true
+    | ((R_Prim_Bool false), (R_Prim_Bool false)) => false
+    | _ => false
+end.
+
 Inductive Refinery_Lang : Type :=
-| R_Primitive: Primitive_Lang -> Refinery_Lang
+    | R_Primitive: R_Lang_Primitive -> Refinery_Lang
 .
 
