@@ -12,7 +12,14 @@ end.
 
 Inductive C_Lang_Operator: Type :=
 | C_Op_Equal
+| C_Op_NotEqual
 .
+
+Definition negateOp op :=
+    match op with 
+    | C_Op_Equal => C_Op_NotEqual
+    | C_Op_NotEqual => C_Op_Equal
+    end.
 
 Definition simpleConstraint := (C_Lang_Property * (C_Lang_Operator * R_Lang_Primitive))%type.
 
@@ -36,9 +43,27 @@ Definition simpleSatisfies (simple1 simple2: simpleConstraint)  :=
             if primitivesSame prim1 prim2
             then true
             else false
+        | (C_Op_NotEqual,C_Op_Equal) => false
+        | (C_Op_Equal,C_Op_NotEqual) => 
+            if primitivesSame prim1 prim2
+            then false
+            else true
+        | (C_Op_NotEqual,C_Op_NotEqual) => 
+            if primitivesSame prim1 prim2
+            then true
+            else false
         end
     else true
 .
+
+Definition satisfy c1 c2 := 
+    match c2 with 
+    | C_NoConstraint => true
+    | C_Constraint simple2 => match c1 with 
+        | C_NoConstraint => false
+        | C_Constraint simple1 => (simpleSatisfies simple1 simple2)
+        end
+    end.
 
 Reserved Notation " '[-' c1 '-]' 'satisfies' '[-' c2 '-]'".
 

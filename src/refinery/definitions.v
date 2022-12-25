@@ -12,7 +12,13 @@ match (prim1, prim2) with
     | _ => false
 end.
 
+Inductive R_Lang_UniOp: Type :=
+    | R_Not
+.
+
+
 Inductive Refinery_Lang : Type :=
     | R_Primitive: R_Lang_Primitive -> Refinery_Lang
+    | R_UniOp: R_Lang_UniOp -> Refinery_Lang -> Refinery_Lang
 .
 
