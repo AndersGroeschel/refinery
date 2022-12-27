@@ -126,6 +126,12 @@ Inductive C_Exlusion_Rules: Constraints_Lang -> Constraints_Lang -> Prop :=
     C' equivalentTo [- prop == prim-] ->
     C excludes C'
 
+| C_Exludes_EqDiff: forall C C' prop prim prim',
+    prim <> prim'
+    C equivalentTo [- prop == prim -] ->
+    C' equivalentTo [- prop == prim'-] ->
+    C excludes C'
+
 where "c1 'excludes' c2" := (C_Exlusion_Rules c1 c2).
 
 

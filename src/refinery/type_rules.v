@@ -39,18 +39,12 @@ Inductive R_Type_BinOp_Rule: R_Lang_BinOp -> Refinery_RefinementType -> Refinery
 | R_T_BinOp_And_False: forall C C',
     (C equivalentTo [- self == (R_Prim_Bool false) -]) \/ (C' equivalentTo [- self == (R_Prim_Bool false) -]) ->
     R_And maps (bool, C) and (bool, C') to (bool,[- self == (R_Prim_Bool false) -])
-| R_T_BinOp_And_True_True: forall C C',
+| R_T_BinOp_And_True: forall C C',
     (C equivalentTo [- self == (R_Prim_Bool true) -]) /\ (C' equivalentTo [- self == (R_Prim_Bool true) -]) ->
     R_And maps (bool, C) and (bool, C') to (bool, [- self == (R_Prim_Bool true) -])
 
-| R_T_BinOp_And_True_NoConstraint: forall C,
-    C equivalentTo [- self == (R_Prim_Bool true) -] -> 
-    R_And maps (bool, C ) and (bool, [- -]) to (bool,[- -])
-| R_T_BinOp_And_NoConstraint_True: forall C,
-    C equivalentTo [- self == (R_Prim_Bool true) -] -> 
-    R_And maps (bool, [- -] ) and (bool, C ) to (bool,[- -])
-| R_T_BinOp_And_NoConstraint_NoConstraint:
-    R_And maps (bool, [- -]) and (bool, [- -]) to (bool, [- -])
+| R_T_BinOp_And_NoConstraint: forall C C',
+    R_And maps (bool, C ) and (bool, C') to (bool,[- -])
 
 
 | R_T_BinOp_Or_False: forall C C',
@@ -60,25 +54,13 @@ Inductive R_Type_BinOp_Rule: R_Lang_BinOp -> Refinery_RefinementType -> Refinery
     (C equivalentTo [- self == (R_Prim_Bool true) -]) \/ (C' equivalentTo [- self == (R_Prim_Bool true) -]) ->
     R_Or maps (bool, C) and (bool, C') to (bool, [- self == (R_Prim_Bool true) -])
 
-| R_T_BinOp_Or_False_NoConstraint: forall C,
-    C equivalentTo [- self == (R_Prim_Bool false) -] -> 
-    R_Or maps (bool, C ) and (bool, [- -]) to (bool,[- -])
-| R_T_BinOp_Or_NoConstraint_False: forall C,
-    C equivalentTo [- self == (R_Prim_Bool false) -] -> 
-    R_Or maps (bool, [- -] ) and (bool, C ) to (bool,[- -])
-| R_T_BinOp_Or_NoConstraint_NoConstraint:
-    R_Or maps (bool, [- -]) and (bool, [- -]) to (bool, [- -])
+| R_T_BinOp_Or_NoConstraint: forall C C',
+    R_Or maps (bool, C ) and (bool, C') to (bool,[- -])
 
 
 | R_T_BinOp_Equal_False_TypeDifferent: forall typ typ' C C',
     typ <> typ' ->
     R_Equal maps (typ, C) and (typ', C') to (bool, [- self == (R_Prim_Bool false) -])
-
-| R_T_BinOp_Equal_False_PrimDifferent: forall typ prim C prim' C',
-    prim <> prim' ->
-    C equivalentTo [- self == prim -] ->
-    C' equivalentTo [- self == prim' -] -> 
-    R_Equal maps (typ, C ) and (typ, C') to (bool, [- self == (R_Prim_Bool false) -])
 
 | R_T_BinOp_Equal_False_Excludes: forall typ C C',
     C excludes C' \/ C' excludes C -> 
