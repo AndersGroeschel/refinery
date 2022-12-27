@@ -1,17 +1,30 @@
 Require Import Bool ZArith.
+Require Import String.
 
 (* primitives of the language think ints bools floats arrays ... *)
 Inductive R_Lang_Primitive : Type :=
     | R_Prim_Bool: bool -> R_Lang_Primitive
 .
 
+
 (* checks if 2 primitive types are the same *)
 Definition primitivesSame prim1 prim2 :=
 match (prim1, prim2) with 
     | ((R_Prim_Bool true), (R_Prim_Bool true)) => true
-    | ((R_Prim_Bool false), (R_Prim_Bool false)) => false
+    | ((R_Prim_Bool false), (R_Prim_Bool false)) => true
     | _ => false
 end.
+
+Theorem primSameEqual_Equivalence:
+    forall prim prim',
+    (primitivesSame prim prim' = true) <-> (prim = prim').
+Proof.
+    induction prim; induction prim'; split; intros;
+    repeat (match goal with 
+    | b: bool |- _ => destruct b
+    end; try (reflexivity || discriminate || assumption)).
+Qed.
+
 
 
 (* the uniary operators of the language *)
@@ -53,6 +66,7 @@ Definition binOpTransformsPrim op prim1 prim2 :=
     impose any rules *)
 Inductive Refinery_Lang : Type :=
     | R_Primitive: R_Lang_Primitive -> Refinery_Lang
+    | R_Var: string -> Refinery_Lang
     | R_UniOp: R_Lang_UniOp -> Refinery_Lang -> Refinery_Lang
     | R_BinOp: R_Lang_BinOp -> Refinery_Lang -> Refinery_Lang -> Refinery_Lang
 .
