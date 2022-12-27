@@ -19,13 +19,33 @@ Inductive R_Lang_UniOp: Type :=
     | R_Not
 .
 (* This function defines how uniary operators transform a primitive value *)
-Definition opTransformsPrim op prim :=
+Definition uniOpTransformsPrim op prim :=
     match op with 
     | R_Not => match prim with 
         | R_Prim_Bool b => Some (R_Prim_Bool (negb b))
         end
     end.
 
+Inductive R_Lang_BinOp: Type :=
+    | R_And
+    | R_Or
+    | R_Equal
+.
+
+Definition binOpTransformsPrim op prim1 prim2 :=
+    match op with 
+    | R_And => 
+        match (prim1,prim2) with 
+        | (R_Prim_Bool b1, R_Prim_Bool b2) => Some (R_Prim_Bool (b1 && b2))
+        end
+    | R_Or => 
+        match (prim1,prim2) with 
+        | (R_Prim_Bool b1, R_Prim_Bool b2) => Some (R_Prim_Bool (b1 || b2))
+        end
+    | R_Equal => if primitivesSame prim1 prim2 
+        then Some (R_Prim_Bool true) 
+        else Some (R_Prim_Bool false)
+    end.
 
 (*  The Abstract syntax tree of the language
 
@@ -34,5 +54,6 @@ Definition opTransformsPrim op prim :=
 Inductive Refinery_Lang : Type :=
     | R_Primitive: R_Lang_Primitive -> Refinery_Lang
     | R_UniOp: R_Lang_UniOp -> Refinery_Lang -> Refinery_Lang
+    | R_BinOp: R_Lang_BinOp -> Refinery_Lang -> Refinery_Lang -> Refinery_Lang
 .
 
