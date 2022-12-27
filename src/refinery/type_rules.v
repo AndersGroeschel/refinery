@@ -1,10 +1,11 @@
 Require Import definitions.
 Require Import constraints.
 
+(* the base types of the type system*)
 Inductive Refinery_BaseType: Type :=
     | R_T_Bool: Refinery_BaseType
 .
-
+(* gives the base type of a primitive value *)
 Definition typeOf prim :=
     match prim with 
     | R_Prim_Bool _ => R_T_Bool
@@ -12,20 +13,13 @@ Definition typeOf prim :=
 
 Definition Refinery_RefinementType := (Refinery_BaseType * Constraints_Lang)%type.
 
-
+(* the following 3 things define how a uniary operator 
+transform a type a refinement type*)
 
 (* given an input base type what base type is output*)
 Definition uniOpTransformBaseType op base :=
     match (op,base) with 
     | (R_Not,R_T_Bool) => Some R_T_Bool
-    end.
-
-(* how does an operator transform a primitive *)
-Definition opTransformsPrim op prim :=
-    match op with 
-    | R_Not => match prim with 
-        | R_Prim_Bool b => Some (R_Prim_Bool (negb b))
-        end
     end.
 
 (* what constraint does the operator enforce on the input *)
@@ -35,7 +29,7 @@ Definition uniOpInputConstraint op base :=
     end
 .
 
-(* how does the uniop type *)
+(* This inductive defines how a uniary operator takes a type to a type *)
 Reserved Notation "op 'maps' typ1 'to' typ2" (at level 40).
 
 Inductive R_Type_UniOp_Rule: R_Lang_UniOp -> Refinery_RefinementType -> Refinery_RefinementType -> Prop :=
@@ -60,7 +54,7 @@ where "op 'maps' typ1 'to' typ2" := (R_Type_UniOp_Rule op typ1 typ2).
 
 
 
-
+(* this inductive defines what type an expression has *)
 Reserved Notation "exp 'hasRefinement' T" (at level 40).
 Inductive Refinery_Type_Rule : Refinery_Lang -> Refinery_RefinementType -> Prop :=
 | R_Typing_Prim : forall prim,
