@@ -14,3 +14,31 @@ Refinery is a hobby language based on the idea of refinement types. Refinement t
 
 3) in the project directory create object files by running
     ```make all```
+
+## Roadmap
+
+- [ ] Formalization of Simplified Refinery Language 
+  - [x] Boolean Primitives
+  - [x] Typing Constraints
+  - [x] Uniary Operators
+  - [x] Binary Operators
+  - [ ] Integers
+    - [ ] Primitive
+    - [ ] Constraints
+    - [ ] Operators
+  - [ ] Variables
+  - [ ] Control Flow
+  - [ ] Loops
+  - [ ] Functions
+  - [ ] Arrays
+    - [ ] Primitive
+    - [ ] Constraints
+    - [ ] Operators
+  - [ ] Records/Classes 
+    - [ ] Primitive
+    - [ ] Constraints
+    - [ ] Operators
+
+
+- [ ] Compiler for Simplified Refinery Language
+- [ ] Formalization of Refinery Language and compiler to Simplified Refinery Language 

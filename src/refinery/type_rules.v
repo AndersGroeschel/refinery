@@ -71,7 +71,7 @@ Inductive R_Type_BinOp_Rule: R_Lang_BinOp -> Refinery_RefinementType -> Refinery
     C' equivalentTo [- self == prim -] -> 
     R_Equal maps (typ,C) and (typ, C') to (bool, [- self == (R_Prim_Bool true) -])
 
-| R_T_BinOp_Equal_Unknown: forall typ C C',
+| R_T_BinOp_Equal_NoConstraint: forall typ C C',
     R_Equal maps (typ,C) and (typ,C') to (bool, [- -])
 
 where "op 'maps' typ1 'and' typ2 'to' typ3" := (R_Type_BinOp_Rule op typ1 typ2 typ3).
