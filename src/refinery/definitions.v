@@ -1,9 +1,11 @@
 Require Import Bool ZArith.
-Require Import String.
+
+Local Open Scope Z_scope.
 
 (* primitives of the language think ints bools floats arrays ... *)
 Inductive R_Lang_Primitive : Type :=
     | R_Prim_Bool: bool -> R_Lang_Primitive
+    | R_Prim_Int: Z -> R_Lang_Primitive
 .
 
 
@@ -12,6 +14,7 @@ Definition primitivesSame prim1 prim2 :=
 match (prim1, prim2) with 
     | ((R_Prim_Bool true), (R_Prim_Bool true)) => true
     | ((R_Prim_Bool false), (R_Prim_Bool false)) => true
+    | (R_Prim_Int z1, R_Prim_Int z2) => z1 =? z2
     | _ => false
 end.
 
@@ -22,8 +25,18 @@ Proof.
     induction prim; induction prim'; split; intros;
     repeat (match goal with 
     | b: bool |- _ => destruct b
+    | H: R_Prim_Int _ = R_Prim_Int _ |- _ => inversion H; subst; clear H
+    | |- primitivesSame (R_Prim_Int ?z) (R_Prim_Int ?z) = true =>
+    let H := fresh "H" in 
+    assert (z0 = z0) as H; [
+        reflexivity 
+        | apply Z.eqb_eq in H; unfold primitivesSame
+    ]
+    | H : context [primitivesSame (R_Prim_Int ?z) (R_Prim_Int ?z')] |- R_Prim_Int ?z = R_Prim_Int ?z' => 
+        unfold primitivesSame in H;apply Z.eqb_eq in H; subst
     end; try (reflexivity || discriminate || assumption)).
-Qed.
+    
+    Qed.
 
 
 
@@ -36,6 +49,7 @@ Definition uniOpTransformsPrim op prim :=
     match op with 
     | R_Not => match prim with 
         | R_Prim_Bool b => Some (R_Prim_Bool (negb b))
+        | _ => None
         end
     end.
 
@@ -50,10 +64,12 @@ Definition binOpTransformsPrim op prim1 prim2 :=
     | R_And => 
         match (prim1,prim2) with 
         | (R_Prim_Bool b1, R_Prim_Bool b2) => Some (R_Prim_Bool (b1 && b2))
+        | _ => None
         end
     | R_Or => 
         match (prim1,prim2) with 
         | (R_Prim_Bool b1, R_Prim_Bool b2) => Some (R_Prim_Bool (b1 || b2))
+        | _ => None
         end
     | R_Equal => if primitivesSame prim1 prim2 
         then Some (R_Prim_Bool true) 
@@ -66,7 +82,6 @@ Definition binOpTransformsPrim op prim1 prim2 :=
     impose any rules *)
 Inductive Refinery_Lang : Type :=
     | R_Primitive: R_Lang_Primitive -> Refinery_Lang
-    | R_Var: string -> Refinery_Lang
     | R_UniOp: R_Lang_UniOp -> Refinery_Lang -> Refinery_Lang
     | R_BinOp: R_Lang_BinOp -> Refinery_Lang -> Refinery_Lang -> Refinery_Lang
 .

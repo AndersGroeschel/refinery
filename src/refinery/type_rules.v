@@ -4,14 +4,17 @@ Require Import constraints.
 (* the base types of the type system*)
 Inductive Refinery_BaseType: Type :=
     | R_T_Bool: Refinery_BaseType
+    | R_T_Int: Refinery_BaseType
 .
 
 Notation "'bool'" := R_T_Bool.
+Notation "'int'" := R_T_Bool.
 
 (* gives the base type of a primitive value *)
 Definition typeOf prim :=
     match prim with 
     | R_Prim_Bool _ => R_T_Bool
+    | R_Prim_Int _ => R_T_Int
     end.
 
 Definition Refinery_RefinementType := (Refinery_BaseType * Constraints_Lang)%type.
