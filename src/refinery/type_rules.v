@@ -8,7 +8,7 @@ Inductive Refinery_BaseType: Type :=
 .
 
 Notation "'bool'" := R_T_Bool.
-Notation "'int'" := R_T_Bool.
+Notation "'int'" := R_T_Int.
 
 (* gives the base type of a primitive value *)
 Definition typeOf prim :=
