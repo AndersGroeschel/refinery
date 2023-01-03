@@ -1,6 +1,7 @@
 -R . Refinery
 
 src/mapping.v
+src/regex.v
 
 src/refinery/definitions.v
 src/refinery/constraints.v
