@@ -1,7 +1,9 @@
 -R . Refinery
 
+src/customTactics.v
 src/mapping.v
 src/regex.v
+
 
 src/refinery/definitions.v
 src/refinery/constraints.v
