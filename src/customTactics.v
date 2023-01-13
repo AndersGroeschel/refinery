@@ -33,6 +33,7 @@ Ltac logicAuto :=
     | H : False |- _ => contradiction H
     | H : _ \/ _ |- _ => destruct H
     | H : _ /\ _ |- _ => destruct H
+    | |- _ /\ _ => split
     | H: ?a = ?a |- _ => clear H
     | H: exists _, _ |- _ => destruct H
     | H: (_,_) = (_,_) |- _ => inversion H;subst

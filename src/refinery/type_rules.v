@@ -26,7 +26,7 @@ Reserved Notation "op 'maps' typ1 'to' typ2" (at level 40).
 Inductive R_Type_UniOp_Rule: R_Lang_UniOp -> Refinery_RefinementType -> Refinery_RefinementType -> Prop :=
 
 | R_T_UniOp_Not_NoConstraint: 
-    R_Not maps (bool, [--]) to (bool, [--])
+    R_Not maps (bool, [- Any -]) to (bool, [- Any -])
 
 | R_T_UniOp_Not_Equal: forall b C,
     C equivalentTo [- self == (R_Prim_Bool b) -] ->
@@ -47,7 +47,7 @@ Inductive R_Type_BinOp_Rule: R_Lang_BinOp -> Refinery_RefinementType -> Refinery
     R_And maps (bool, C) and (bool, C') to (bool, [- self == (R_Prim_Bool true) -])
 
 | R_T_BinOp_And_NoConstraint: forall C C',
-    R_And maps (bool, C ) and (bool, C') to (bool,[- -])
+    R_And maps (bool, C ) and (bool, C') to (bool,[- Any -])
 
 
 | R_T_BinOp_Or_False: forall C C',
@@ -58,7 +58,7 @@ Inductive R_Type_BinOp_Rule: R_Lang_BinOp -> Refinery_RefinementType -> Refinery
     R_Or maps (bool, C) and (bool, C') to (bool, [- self == (R_Prim_Bool true) -])
 
 | R_T_BinOp_Or_NoConstraint: forall C C',
-    R_Or maps (bool, C ) and (bool, C') to (bool,[- -])
+    R_Or maps (bool, C ) and (bool, C') to (bool,[- Any -])
 
 
 | R_T_BinOp_Equal_False_TypeDifferent: forall typ typ' C C',
@@ -75,7 +75,7 @@ Inductive R_Type_BinOp_Rule: R_Lang_BinOp -> Refinery_RefinementType -> Refinery
     R_Equal maps (typ,C) and (typ, C') to (bool, [- self == (R_Prim_Bool true) -])
 
 | R_T_BinOp_Equal_NoConstraint: forall typ C C',
-    R_Equal maps (typ,C) and (typ,C') to (bool, [- -])
+    R_Equal maps (typ,C) and (typ,C') to (bool, [- Any -])
 
 where "op 'maps' typ1 'and' typ2 'to' typ3" := (R_Type_BinOp_Rule op typ1 typ2 typ3).
 

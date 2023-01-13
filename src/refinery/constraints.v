@@ -1,6 +1,8 @@
 Require Import definitions.
 Require Import Bool.
 Require Import ZArith.
+Require Import regex.
+Require Import customTactics.
 
 Local Open Scope Z_scope.
 
@@ -78,8 +80,8 @@ Notation " 'Any' " := C_NoConstraint (in custom constraint).
 Notation " 'self' " := C_Prop_Self (in custom constraint).
 Notation " 'true' " := (R_Prim_Bool true) (in custom constraint).
 Notation " 'false' " := (R_Prim_Bool false) (in custom constraint).
-Notation " 'bool' b " :=  (R_Prim_Bool b) (in custom constraint at level 0, no associativity).
-Notation " 'int' z " :=  (R_Prim_Int z) (in custom constraint at level 0, no associativity).
+Notation " 'bool' b " :=  (R_Prim_Bool b) (in custom constraint at level 60, no associativity).
+Notation " 'int' z " :=  (R_Prim_Int z) (in custom constraint at level 60, no associativity).
 
 Notation "x && y"  := (C_And x y) (in custom constraint at level 80, left associativity).
 Notation "x || y"  := (C_Or x y) (in custom constraint at level 80, left associativity).
@@ -91,143 +93,122 @@ Notation " prop '>' prim " := (C_Constraint (prop, (C_Op_GreaterThan, prim))) (i
 Notation " prop '<=' prim " := (C_Constraint (prop, (C_Op_LessThanEqual, prim))) (in custom constraint at level 70, no associativity).
 Notation " prop '>=' prim " := (C_Constraint (prop, (C_Op_GreaterThanEqual, prim))) (in custom constraint at level 70, no associativity).
 
-Ltac solveWithConstructor C := 
-    solve [
-        eapply C;
-        match goal with 
-        | H: ?P |- ?P' => unify P P'; apply H
-        end
-    ]
-.
 
-Ltac notHypothesis H :=
-    lazymatch goal with 
-    | H': H |- _ => fail
-    | |- _ => try fail
-    end.
 
-Ltac flipRelations := 
-    match goal with 
-    | H: _ = _ |- _ => symmetry in H 
-    | H: _ <> _ |- _ => apply not_eq_sym in H
-    | H: _ > _ |- _ => apply Z.gt_lt_iff in H
-    | H: _ < _ |- _ => apply Z.gt_lt_iff in H
-    | H: _ >= _ |- _ => apply Z.ge_le_iff in H
-    | H: _ <= _ |- _ => apply Z.ge_le_iff in H
+Definition IsNumberType prim := match prim with 
+| R_Prim_Int _ => True
+| _ => False
 end.
 
-Ltac specializeHypothesis :=
-    match goal with 
-    | H: ?P, IH: ?P -> _ |- _ => specialize (IH H)
-    end.
-
-
-
-Reserved Notation "c1 'equivalentTo' c2" (at level 40).
 Inductive C_Equivalent_Rules: Constraints_Lang -> Constraints_Lang -> Prop :=
-| C_Equivalent_Exact: forall C, 
-    C equivalentTo C
-
-| C_Equivalent_Transitive: forall C C' C'',
-    C equivalentTo C' ->
-    C' equivalentTo C'' ->
-    C equivalentTo C''
+| C_Equivalent_Exact: forall C,
+    C_Equivalent_Rules C C
 
 | C_Equivalent_AndComm: forall C C',
-    [- C && C' -] equivalentTo [- C' && C -]
-
+    C_Equivalent_Rules [- C && C' -] [- C' && C -]
 | C_Equivalent_AndStep: forall C C' C'',
-    C equivalentTo C'' ->
-    [- C && C' -] equivalentTo [- C'' && C' -]
+    C_Equivalent_Rules [- C -] [- C'' -] ->
+    C_Equivalent_Rules [- C && C' -] [- C'' && C' -]
 | C_Equivalent_AndAssoc1: forall C C' C'',
-    [- C && (C' && C'') -] equivalentTo [- (C && C') && C'' -]
+    C_Equivalent_Rules [- C && (C' && C'') -] [- (C && C') && C'' -]
 | C_Equivalent_AndAssoc2: forall C C' C'',
-    [- (C && C') && C'' -] equivalentTo [- C && (C' && C'') -]
+    C_Equivalent_Rules [- (C && C') && C'' -] [- C && (C' && C'') -]
 | C_Equivalent_AndSame1: forall C,
-    C equivalentTo [- C && C-]
+    C_Equivalent_Rules [- C -] [- C && C-]
 | C_Equivalent_AndSame2: forall C,
-    [- C && C-] equivalentTo C
-
+    C_Equivalent_Rules [- C && C-] [- C -]
 | C_Equivalent_AndNoConstraint1: forall C,
-    [- C && Any -] equivalentTo [- C -]
+    C_Equivalent_Rules [- C && Any -] [- C -]
 | C_Equivalent_AndNoConstraint2: forall C,
-    [- C -] equivalentTo [- C && Any -]
+    C_Equivalent_Rules [- C -] [- C && Any -]
 
 | C_Equivalent_OrComm: forall C C',
-    [- C || C' -] equivalentTo [- C' || C -]
+    C_Equivalent_Rules [- C || C' -] [- C' || C -]
 | C_Equivalent_OrStep: forall C C' C'',
-    C equivalentTo C'' ->
-    [- C || C' -] equivalentTo [- C'' || C' -]
+    C_Equivalent_Rules [- C -] [- C'' -] ->
+    C_Equivalent_Rules [- C || C' -] [- C'' || C' -]
 | C_Equivalent_OrAssoc1: forall C C' C'',
-    [- C || (C' || C'') -] equivalentTo [- (C || C') || C'' -]
+    C_Equivalent_Rules [- C || (C' || C'') -] [- (C || C') || C'' -]
 | C_Equivalent_OrAssoc2: forall C C' C'',
-    [- (C || C') || C'' -] equivalentTo [- C || (C' || C'') -]
+    C_Equivalent_Rules [- (C || C') || C'' -] [- C || (C' || C'') -]
 | C_Equivalent_OrSame1: forall C,
-    C equivalentTo [- C || C -]
+    C_Equivalent_Rules [- C -] [- C || C-]
 | C_Equivalent_OrSame2: forall C,
-    [- C || C -] equivalentTo C
-
+    C_Equivalent_Rules [- C || C-] [- C -]
 | C_Equivalent_OrNoConstraint1: forall C,
-    [- C || Any -] equivalentTo [- Any -]
+    C_Equivalent_Rules [- C || Any -] [- Any -]
 | C_Equivalent_OrNoConstraint2: forall C,
-    [- Any -] equivalentTo [- C || Any -]
+    C_Equivalent_Rules [- Any -] [- C || Any -]
+
+| C_Equivalent_Le1: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop <= prim -] [- prop < prim || prop == prim -]
+| C_Equivalent_Le2: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop < prim || prop == prim -] [- prop <= prim -]
+| C_Equivalent_Le3: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop < prim -] [- prop <= prim && prop != prim  -]
+| C_Equivalent_Le4: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop <= prim && prop != prim -] [- prop < prim -]
+
+| C_Equivalent_Ge1: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop >= prim -] [- prop > prim || prop == prim -]
+| C_Equivalent_Ge2: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop > prim || prop == prim -] [- prop >= prim -]
+| C_Equivalent_Ge3: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop > prim -] [- prop >= prim && prop != prim  -]
+| C_Equivalent_Ge4: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop >= prim && prop != prim -] [- prop > prim -]
+
+| C_Equivalent_CompNeq1: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop != prim -] [- prop > prim || prop < prim -]
+| C_Equivalent_CompNeq2: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop > prim || prop < prim -] [- prop != prim -]
+
+| C_Equivalent_CompEq1: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop == prim -] [- prop >= prim && prop <= prim -]
+| C_Equivalent_CompEq2: forall prop prim,
+    IsNumberType prim ->
+    C_Equivalent_Rules [- prop >= prim && prop <= prim -] [- prop == prim -]
 
 
 
 | C_Equivalent_BoolNeq1: forall prop b,
-    [- prop == (bool b) -] equivalentTo [- prop != (bool (negb b)) -]
+    C_Equivalent_Rules [- prop == (bool b) -] [- prop != (bool (negb b)) -]
 | C_Equivalent_BoolNeq2: forall prop b,
-    [- prop != (bool (negb b)) -] equivalentTo [- prop == (bool b) -]
+    C_Equivalent_Rules [- prop != (bool (negb b)) -] [- prop == (bool b) -]
 
 | C_Equivalent_BoolOr1: forall prop,
-    [- prop == true || prop == false -] equivalentTo [- Any -]
+    C_Equivalent_Rules [- prop == true || prop == false -] [- Any -]
 | C_Equivalent_BoolOr2: forall prop,
-    [- Any -] equivalentTo [- prop == true || prop == false -]
+    C_Equivalent_Rules [- Any -] [- prop == true || prop == false -]
+
+
 
 | C_Equivalent_LeInt1: forall prop z,
-    [- prop < int z -] equivalentTo [- prop < int (Z.add z 1) && prop != int (Z.add z 1)  -]
+    C_Equivalent_Rules [- prop <= int z -] [- prop < int (Z.add z 1) -]
 | C_Equivalent_LeInt2: forall prop z,
-    [- prop < int (Z.add z 1) && prop != int (Z.add z 1)  -] equivalentTo [- prop < int z -]
-| C_Equivalent_LeInt3: forall prop z,
-    [- prop < int z -] equivalentTo [- prop < int (Z.sub z 1) || prop == int (Z.sub z 1) -]
-| C_Equivalent_LeInt4: forall prop z,
-    [- prop < int (Z.sub z 1) || prop == int (Z.sub z 1) -] equivalentTo [- prop < int z -]
-| C_Equivalent_LeInt5: forall prop z,
-    [- prop < int z -] equivalentTo [- prop <= int (Z.sub z 1) -]
-| C_Equivalent_LeInt6: forall prop z,
-    [- prop <= int (Z.sub z 1) -] equivalentTo [- prop < int z -]
+    C_Equivalent_Rules [- prop < int (Z.add z 1) -] [- prop <= int z -]
 
 | C_Equivalent_GeInt1: forall prop z,
-    [- prop > int z -] equivalentTo [- prop > int (Z.sub z 1) && prop != int (Z.sub z 1)  -]
+    C_Equivalent_Rules [- prop >= int z -] [- prop > int (Z.sub z 1) -]
 | C_Equivalent_GeInt2: forall prop z,
-    [- prop > int (Z.sub z 1) && prop != int (Z.sub z 1)  -] equivalentTo [- prop > int z -]
-| C_Equivalent_GeInt3: forall prop z,
-    [- prop > int z -] equivalentTo [- prop > int (Z.add z 1) || prop == int (Z.add z 1) -]
-| C_Equivalent_GeInt4: forall prop z,
-    [- prop > int (Z.add z 1) || prop == int (Z.add z 1) -] equivalentTo [- prop > int z -]
-| C_Equivalent_GeInt5: forall prop z,
-    [- prop > int z -] equivalentTo [- prop >= int (Z.add z 1) -]
-| C_Equivalent_GeInt6: forall prop z,
-    [- prop >= int (Z.add z 1) -] equivalentTo [- prop > int z -]
-
-
-| C_Equivalent_NeqInt1: forall prop z,
-    [- prop != int z -] equivalentTo [- prop > int z || prop < int z -]
-| C_Equivalent_NeqInt2: forall prop z,
-    [- prop > int z || prop < int z -] equivalentTo [- prop != int z -]
-
-| C_Equivalent_EqInt1: forall prop z,
-    [- prop == int z -] equivalentTo [- prop >= int z && prop <= int z -]
-| C_Equivalent_EqInt2: forall prop z,
-    [- prop >= int z && prop <= int z -] equivalentTo [- prop == int z -]
-
-where "c1 'equivalentTo' c2" := (C_Equivalent_Rules c1 c2).
+    C_Equivalent_Rules [- prop > int (Z.sub z 1) -] [- prop >= int z -]
+.
 
 Ltac equivalenceConstructor :=
 match goal with 
-| |- _ equivalentTo _ =>
+| |- C_Equivalent_Rules _ _ =>
     (solveWithConstructor C_Equivalent_Exact) ||
-    (solveWithConstructor C_Equivalent_Transitive) ||
     (solveWithConstructor C_Equivalent_AndComm) ||
     (solveWithConstructor C_Equivalent_AndStep) ||
     (solveWithConstructor C_Equivalent_AndAssoc1) ||
@@ -244,36 +225,76 @@ match goal with
     (solveWithConstructor C_Equivalent_OrSame2) ||
     (solveWithConstructor C_Equivalent_OrNoConstraint1) ||
     (solveWithConstructor C_Equivalent_OrNoConstraint2) ||
+    (solveWithConstructor C_Equivalent_Le1) ||
+    (solveWithConstructor C_Equivalent_Le2) ||
+    (solveWithConstructor C_Equivalent_Le3) ||
+    (solveWithConstructor C_Equivalent_Le4) ||
+    (solveWithConstructor C_Equivalent_Ge1) ||
+    (solveWithConstructor C_Equivalent_Ge2) ||
+    (solveWithConstructor C_Equivalent_Ge3) ||
+    (solveWithConstructor C_Equivalent_Ge4) ||
     (solveWithConstructor C_Equivalent_BoolNeq1) ||
     (solveWithConstructor C_Equivalent_BoolNeq2) ||
     (solveWithConstructor C_Equivalent_BoolOr1) ||
     (solveWithConstructor C_Equivalent_BoolOr2) ||
     (solveWithConstructor C_Equivalent_LeInt1) ||
     (solveWithConstructor C_Equivalent_LeInt2) ||
-    (solveWithConstructor C_Equivalent_LeInt3) ||
-    (solveWithConstructor C_Equivalent_LeInt4) ||
-    (solveWithConstructor C_Equivalent_LeInt5) ||
-    (solveWithConstructor C_Equivalent_LeInt6) ||
     (solveWithConstructor C_Equivalent_GeInt1) ||
     (solveWithConstructor C_Equivalent_GeInt2) ||
-    (solveWithConstructor C_Equivalent_GeInt3) ||
-    (solveWithConstructor C_Equivalent_GeInt4) ||
-    (solveWithConstructor C_Equivalent_GeInt5) ||
-    (solveWithConstructor C_Equivalent_GeInt6) ||
-    (solveWithConstructor C_Equivalent_NeqInt1) ||
-    (solveWithConstructor C_Equivalent_NeqInt2) ||
-    (solveWithConstructor C_Equivalent_EqInt1) || 
-    (solveWithConstructor C_Equivalent_EqInt2)
+    (solveWithConstructor C_Equivalent_CompNeq1) ||
+    (solveWithConstructor C_Equivalent_CompNeq2) ||
+    (solveWithConstructor C_Equivalent_CompEq1) || 
+    (solveWithConstructor C_Equivalent_CompEq2)
 end.
 
-Theorem equivalenceCommutative:
+Notation "c1 'equivalentTo' c2" := (plus C_Equivalent_Rules c1 c2) (at level 40).
+
+Lemma equivalence_rules_commutative:
     forall C C',
-    C equivalentTo C' -> C' equivalentTo C.
+    C_Equivalent_Rules C C' ->
+    C_Equivalent_Rules C' C.
 Proof.
     intros C C' H.
     induction H; subst;
     try equivalenceConstructor.
 Qed.
+
+Theorem equivalenceCommutative:
+    forall C C',
+    C equivalentTo C' ->
+    C' equivalentTo C.
+Proof.
+    intros C C'.
+    apply plus_relationCommute_plusCommute; clear C C'.
+    apply equivalence_rules_commutative.
+Qed.
+
+Theorem equivalenceSubstitution:
+    forall C C' Ce Ce',
+    C equivalentTo Ce ->
+    C' equivalentTo Ce' ->
+    Ce equivalentTo Ce' ->
+    C equivalentTo C'.
+Proof.
+    intros C C' Ce Ce' Equiv1 Equiv2 H.
+    induction Equiv1; induction Equiv2; subst;
+    logicAuto.
+    - eapply plus_multi; [apply H0 | ]. 
+        eapply plus_step_between; [unifyAssumption |].
+        apply equivalence_rules_commutative. assumption.
+    - eapply plus_step_between.
+        + unifyAssumption.
+        + apply equivalence_rules_commutative. assumption.
+    - eapply plus_multi.
+        + unifyAssumption.
+        + assumption.
+    -  eapply plus_multi.
+        + unifyAssumption.
+        + assumption.
+Qed.
+
+
+
 
 Reserved Notation "c1 'excludes' c2" (at level 40).
 Inductive C_Exlusion_Rules: Constraints_Lang -> Constraints_Lang -> Prop :=
@@ -284,11 +305,8 @@ Inductive C_Exlusion_Rules: Constraints_Lang -> Constraints_Lang -> Prop :=
     Ce excludes Ce' ->
     C excludes C'
 
-| C_Excludes_AndRight_Left: forall C C' C'',
+| C_Excludes_AndRight: forall C C' C'',
     C excludes C' ->
-    C excludes [- C' && C'' -]
-| C_Excludes_AndRight_Right: forall C C' C'',
-    C excludes C'' ->
     C excludes [- C' && C'' -]
 
 | C_Excludes_AndLeft_Left: forall C C' C'',
@@ -356,10 +374,9 @@ match goal with
     (solveWithConstructor C_Excludes_GeEq) ||
     (solveWithConstructor C_Excludes_EqGe) ||
     (solveWithConstructor C_Excludes_ConstraintEquivalence) ||
-    (solveWithConstructor C_Excludes_AndRight_Right) ||
-    (solveWithConstructor C_Excludes_AndLeft_Right) ||
-    (solveWithConstructor C_Excludes_AndRight_Left) ||
+    (solveWithConstructor C_Excludes_AndRight) ||
     (solveWithConstructor C_Excludes_AndLeft_Left) ||
+    (solveWithConstructor C_Excludes_AndLeft_Right) ||
     (solveWithConstructor C_Excludes_OrRight) ||
     (solveWithConstructor C_Excludes_OrLeft)
 end.
@@ -375,100 +392,152 @@ Proof.
     induction H; subst;
     try flipRelations;
     try exclusionConstructors.
-Qed.
+    - eapply C_Excludes_ConstraintEquivalence.
+        + apply plus_one.
+            apply C_Equivalent_Exact.
+        + apply plus_one.
+            apply C_Equivalent_AndComm.
+        + exclusionConstructors.
+    Admitted.
 
 
-Reserved Notation "c1 'satisfies' c2" (at level 40).
+
 Inductive C_Satisfy_Rules: Constraints_Lang -> Constraints_Lang -> Prop :=
-| C_Satisfy_NoConstraint: forall C C',
-    C' equivalentTo [- Any -] ->
-    C satisfies C'
 
-| C_Satisfy_Equivalence: forall C C',
-    C equivalentTo C' ->
-    C satisfies C'
+| C_Satisfy_Equal: forall C,
+    C_Satisfy_Rules C C
 
 | C_Satisfy_ConstraintEquivalence: forall C C' Cs Cs',
     C equivalentTo Cs ->
     C' equivalentTo Cs' ->
-    Cs satisfies Cs' ->
-    C satisfies C'
+    C_Satisfy_Rules Cs Cs' ->
+    C_Satisfy_Rules C C'
 
+| C_Satisfy_NoConstraint: forall C ,
+    C_Satisfy_Rules C [- Any -]
 
 | C_Satisfy_AndRight: forall C C' C'',
-    C satisfies C' ->
-    C satisfies C'' ->
-    C satisfies [- C' && C'' -]
-| C_Satisfy_AndLeft_Left: forall C C' C'',
-    C satisfies C'' ->
-    [- C && C' -] satisfies C''
-| C_Satisfy_AndLeft_Right: forall C C' C'',
-    C' satisfies C'' ->
-    [- C && C' -] satisfies C''
+    C_Satisfy_Rules C C' ->
+    C_Satisfy_Rules C C'' ->
+    C_Satisfy_Rules C [- C' && C'' -]
+| C_Satisfy_AndLeft: forall C C' C'',
+    C_Satisfy_Rules C C'' ->
+    C_Satisfy_Rules [- C && C' -] C''
+
+| C_Satisfy_AndSplit: forall C C' C'',
+    C_Satisfy_Rules C [- C' && C'' -] ->
+    C_Satisfy_Rules C C'
 
 
-| C_Satisfy_OrRight_Left: forall C C' C'',
-    (C satisfies C') ->
-    C satisfies [- C' || C'' -]
-| C_Satisfy_OrRight_Right: forall C C' C'',
-    (C satisfies C'') ->
-    C satisfies [- C' || C'' -]
+
+| C_Satisfy_OrRight: forall C C' C'',
+    C_Satisfy_Rules C C' ->
+    C_Satisfy_Rules C [- C' || C'' -]
 | C_Satisfy_OrLeft: forall C C' C'',
-    C satisfies C'' ->
-    C' satisfies C'' ->
-    [- C || C' -] satisfies C''
+    C_Satisfy_Rules C C'' ->
+    C_Satisfy_Rules C' C'' ->
+    C_Satisfy_Rules [- C || C' -] C''
 
 
 | C_Satisfy_LeEqLeEq: forall z z' prop, 
     z <= z' ->
-    [- prop <= int z -] satisfies [- prop <= int z' -]
+    C_Satisfy_Rules [- prop <= int z -] [- prop <= int z' -]
 
 | C_Satisfy_GeEqGeEq: forall z z' prop, 
     z >= z' ->
-    [- prop >= int z -] satisfies [- prop >= int z' -]
+    C_Satisfy_Rules [- prop >= int z -] [- prop >= int z' -]
+.
 
-where  " c1 'satisfies' c2 " := (C_Satisfy_Rules c1 c2).
+Notation "c1 'satisfies' c2" := (plus C_Satisfy_Rules c1 c2) (at level 40).
 
 Ltac satisfiesConstructors := 
 match goal with 
-| |- _ satisfies _ =>
+| |- C_Satisfy_Rules _ _ =>
+    (solveWithConstructor C_Satisfy_Equal) ||
     (solveWithConstructor C_Satisfy_NoConstraint) ||
-    (solveWithConstructor C_Satisfy_Equivalence) ||
     (solveWithConstructor C_Satisfy_ConstraintEquivalence) ||
     (solveWithConstructor C_Satisfy_AndRight) ||
-    (solveWithConstructor C_Satisfy_AndLeft_Left) ||
-    (solveWithConstructor C_Satisfy_AndLeft_Right) ||
-    (solveWithConstructor C_Satisfy_OrRight_Left) ||
-    (solveWithConstructor C_Satisfy_OrRight_Right) ||
+    (solveWithConstructor C_Satisfy_AndLeft) ||
+    (solveWithConstructor C_Satisfy_AndSplit) ||
+    (solveWithConstructor C_Satisfy_OrRight) ||
     (solveWithConstructor C_Satisfy_OrLeft) ||
     (solveWithConstructor C_Satisfy_LeEqLeEq) ||
     (solveWithConstructor C_Satisfy_GeEqGeEq)
 end.
 
-Theorem satisfiesAnd:
-    forall C C' C'',
-    C satisfies [- C' && C'' -] ->
-    C satisfies C' /\ C satisfies C''.
+Theorem satisfiesSubstitution:
+    forall C C' Ce Ce',
+    C equivalentTo Ce ->
+    C' equivalentTo Ce' ->
+    Ce satisfies Ce' ->
+    C satisfies C'.
 Proof.
-    Admitted.
+    intros C C' Ce Ce' Equiv1 Equiv2 H.
+    induction Equiv1; induction Equiv2; subst;
+    logicAuto.
+    - eapply plus_multi.
+        +  eapply C_Satisfy_ConstraintEquivalence.
+            * apply plus_one. unifyAssumption.
+            * apply plus_one. apply C_Equivalent_Exact.
+            * apply C_Satisfy_Equal.
+        + eapply plus_step_between.
+            * apply H.
+            * eapply C_Satisfy_ConstraintEquivalence.
+                -- apply plus_one. apply C_Equivalent_Exact.
+                -- apply plus_one. unifyAssumption.
+                -- apply C_Satisfy_Equal.   
+    - eapply plus_step_between.
+        + unifyAssumption.
+        + eapply C_Satisfy_ConstraintEquivalence.
+            * apply plus_one. apply C_Equivalent_Exact.
+            * apply plus_one. unifyAssumption.
+            * apply C_Satisfy_Equal. 
+    - eapply plus_multi.
+        + eapply C_Satisfy_ConstraintEquivalence.
+            * apply plus_one. unifyAssumption.
+            * apply plus_one. apply C_Equivalent_Exact.
+            * apply C_Satisfy_Equal.
+        + assumption.    
+    - eapply plus_multi.
+        + eapply C_Satisfy_ConstraintEquivalence.
+            * apply plus_one. unifyAssumption.
+            * apply plus_one. apply C_Equivalent_Exact.
+            * apply C_Satisfy_Equal.
+        + assumption.
+Admitted. 
 
-Theorem satisfiesOr:
-    forall C C' C'',
-    C satisfies [- C' || C'' -] ->
-    C satisfies C' \/ C satisfies C''.
-Proof.
-    Admitted.
 
 
-
+(* Facts about the relations that should hold *)
 
 Theorem ExludeNotSatisfy:
     forall C C',
     C excludes C' ->
     ~ (C satisfies C').
 Proof.
-    intros C C' H contra;
+    intros C C' H. 
     induction H; subst;
+    intros contra.
+
+    - eapply satisfiesSubstitution in contra;[
+        | apply equivalenceCommutative in H; apply H
+        | apply equivalenceCommutative in H0; apply H0
+    ]. 
+    Admitted. (*assumption.
+    - eapply invert_between in contra; logicAuto; [
+        apply plus_one; satisfiesConstructors
+        | eapply plus_step_between; [
+            unifyAssumption
+            | satisfiesConstructors
+        ]
+    ]. 
+    - eapply invert_between in contra; 
+    logicAuto; [ apply plus_one | eapply plus_step_between].
+        + satisfiesConstructors. 
+        destruct contra.
+    
+    
+    unifyAssumption.
     try match goal with
     | Equiv1: ?C equivalentTo ?Ce,
         Equiv2: ?C' equivalentTo ?Ce',
@@ -482,9 +551,10 @@ Proof.
         apply equivalenceCommutative in Equiv1;
         apply equivalenceCommutative in Equiv2
     end;
-    try specializeHypothesis;
+    try logicAuto;
     try contradiction.
     Admitted.
+    *)
     
 
 Theorem SatisfyNotExlude:
@@ -495,7 +565,6 @@ Proof.
     Admitted.
 
 
-(* correctness Theorems *)
 Theorem EquivNotExlude:
     forall C C',
     C equivalentTo C' ->
