@@ -66,14 +66,8 @@ Lemma plus_trans:
     plus R a b -> plus R b c -> plus R a c.
 Proof.
     intros A R a b c H H0.
-    induction H; 
-    logicAuto;
-    match goal with 
-    | H: ?R ?a ?b, H0: plus ?R ?b ?c |- plus ?R ?a ?c => 
-        eapply (plus_multi); [
-            apply H | apply H0
-        ]
-    end.
+    induction H; eapply (plus_multi); repeat (try applyFromContext; logicAuto).
+
 Qed.
 
 
@@ -87,6 +81,37 @@ Proof.
     - apply plus_one. assumption.
 Qed. 
 
+Ltac plusAuto :=
+    try solve[do 5 try (
+        logicAuto;
+        (applyFromContext ||
+        multimatch goal with 
+        | H: ?R ?a ?b, H0: plus ?R ?b ?c |- plus ?R ?a ?c => 
+            eapply (plus_multi); [
+                apply H | apply H0
+            ]
+        | H: plus ?R ?a ?b, H0: ?R ?b ?c |- plus ?R ?a ?c => 
+            eapply plus_step_between; [
+                apply H | apply H0
+            ]
+        | H: plus ?R ?a ?b, H0: plus ?R ?b ?c |- plus ?R ?a ?c =>
+            eapply plus_trans;[
+                apply H | apply H0
+            ]
+        | H: ?R ?a ?b, H0: ?R ?b ?c |- plus ?R ?a ?c =>
+            eapply plus_multi;[
+                apply H | apply plus_one; apply H0
+            ]
+        | H: ?R ?a ?b |- plus ?R ?a ?b => apply plus_one; apply H
+
+        | |- plus _ _ _ => eapply plus_one
+        | |- plus _ _ _ => eapply plus_multi
+        | |- plus _ _ _ => eapply plus_step_between
+        | |- plus _ _ _ => eapply plus_trans
+        end
+    ))].
+
+
 
 Lemma plus_relationCommute_plusCommute:
     forall {A : Type} (R : Relation A) (a b: A),
@@ -95,41 +120,9 @@ Lemma plus_relationCommute_plusCommute:
     plus R b a.
 Proof.
     intros A R a b R_Commutes H.
-    induction H.
-    - apply plus_one.
-        match goal with 
-        | H: forall a b, ?P a b -> _ |- _ => idtac P
-        end.
-        apply R_Commutes. assumption.
-    - eapply plus_trans.
-        + apply IHplus.
-        + apply R_Commutes in H.
-            apply plus_one; assumption. 
+    induction H; plusAuto.
 Qed.
 
-Ltac plusAuto :=
-    logicAuto;
-    solve[
-    match goal with 
-    | H: ?R ?a ?b, H0: plus ?R ?b ?c |- plus ?R ?a ?c => 
-        eapply (plus_multi); [
-            apply H | apply H0
-        ]
-    | H: plus ?R ?a ?b, H0: ?R ?b ?c |- plus ?R ?a ?c => 
-        eapply plus_step_between; [
-            apply H | apply H0
-        ]
-    | H: plus ?R ?a ?b, H0: plus ?R ?b ?c |- plus ?R ?a ?c =>
-        eapply plus_trans;[
-            apply H | apply H0
-        ]
-    | H: ?R ?a ?b, H0: ?R ?b ?c |- plus ?R ?a ?c =>
-        eapply plus_multi;[
-            apply H | apply plus_one; apply H0
-        ]
-    | H: ?R ?a ?b |- plus ?R ?a ?b => apply plus_one; apply H
-    end
-    ].
 
 Lemma plus_inversion:
     forall {A : Type} (R : Relation A) (a b: A), 
@@ -141,19 +134,8 @@ Lemma plus_inversion:
     ).
 Proof.
     intros A R a b H.
-    induction H; subst.
-    - left. assumption. 
-    - logicAuto; right; split;
-        try solve[
-            exists b; split; (
-                (apply plus_one; assumption )||
-                assumption
-            )
-        ].
-        + exists x0; split;[| assumption].
-            eapply plus_multi.
-            * apply H.
-            * assumption.
+    induction H; subst; plusAuto.
+    - right. plusAuto.
 Qed.
 
 
