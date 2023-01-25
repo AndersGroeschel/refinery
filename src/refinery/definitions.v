@@ -8,7 +8,6 @@ Inductive R_Lang_Primitive : Type :=
     | R_Prim_Int: Z -> R_Lang_Primitive
 .
 
-
 (* checks if 2 primitive types are the same *)
 Definition primitivesSame prim1 prim2 :=
 match (prim1, prim2) with 
@@ -37,6 +36,29 @@ Proof.
     end; try (reflexivity || discriminate || assumption)).
     
     Qed.
+
+(* the base types of the type system*)
+Inductive Refinery_BaseType: Type :=
+    | R_T_Bool: Refinery_BaseType
+    | R_T_Int: Refinery_BaseType
+.
+
+Notation "'Bool'" := R_T_Bool.
+Notation "'Int'" := R_T_Int.
+
+(* gives the base type of a primitive value *)
+Definition baseTypeOf prim :=
+    match prim with 
+    | R_Prim_Bool _ => R_T_Bool
+    | R_Prim_Int _ => R_T_Int
+    end.
+
+Definition baseTypesSame t1 t2 :=
+    match (t1,t2) with 
+    | (R_T_Bool, R_T_Bool) => true
+    | (R_T_Int, R_T_Int) => true
+    | _ => false
+    end.
 
 
 
